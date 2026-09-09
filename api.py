@@ -113,7 +113,7 @@ def create_new_conversation(user_id: int):
 
 
     
-@app.get("/conversations/{user_id}")
+@app.get("/conversations/list/{user_id}")
 def list_conversations(user_id: int):
     conversations = db.get_user_specific_convo(user_id)
     return conversations
