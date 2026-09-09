@@ -71,11 +71,6 @@ class ChatDatabase:
 
     def save_message(self, conversation_id, role, content):
 
-        print("SAVING MESSAGE:")
-        print("conversation_id =", conversation_id)
-        print("role =", role)
-        print("content =", content)
-
         self.cursor.execute("""
         INSERT INTO messages (conversation_id, role, content)
         VALUES (?, ?, ?)
@@ -175,7 +170,7 @@ class ChatDatabase:
     def get_user_specific_convo(self, user_id):
         self.cursor.execute("""
             
-            SELECT id , created_at, title FROM conversations
+            SELECT id FROM conversations
             WHERE user_id = ?
             ORDER BY created_at DESC""", (user_id,))
         

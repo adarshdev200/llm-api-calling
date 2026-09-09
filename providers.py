@@ -15,9 +15,10 @@ class LLMProvider :
             return "No key found"
         return f"{self._api_key[:5]}...{self._api_key[-4:]}"
     
-    def _validate_prompt(self,prompt) :
+    def validate_prompt(self,prompt) :
         if prompt.strip() == "" :
-            raise ValueError("Prompt cannot be empty")
+            return False
+        return True
         
     def generate(self, messages):
         raise NotImplementedError("Subclasses must implement generate()")

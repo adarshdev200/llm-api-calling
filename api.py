@@ -5,6 +5,8 @@ from chatbot import ChatBot
 from database import ChatDatabase
 import os
 from pydantic import BaseModel
+from fastapi import HTTPException
+import anthropic
 
 
 app = FastAPI()
@@ -22,42 +24,61 @@ db = ChatDatabase()
 
 # This is for continuing conversartion
 
+
+def conversation_exists(user_id, conversation_id) :
+        result = db.get_user_specific_convo(user_id=user_id)
+        
+        if conversation_id in [row[0] for row in result]:
+            return True
+        else:
+            return False
+
+
 @app.post("/chat/{user_id}/{conversation_id}")
 def continue_chat(user_id: int, conversation_id: int, chatinput: chat):
-
-    bot = ChatBot(
-        provider=provider,
-        database=db,
-        user_id=user_id,
-        conversation_id=conversation_id,
-        system_prompt="You are a friendly tutor"
-    )
-
-    response = bot.chat(chatinput.input)
-    db.debug_messages()
-
-    return {
-        "conversation_id": conversation_id,
-        "response": response
-    }
     
+    result = conversation_exists(user_id=user_id , conversation_id=conversation_id) 
     
-# @app.post('/chat/intial/{user_id}/{conversation_id}')
-# def intial_chat(user_id: int, conversation_id: int, chatinput: chat) :
-    
-#         bot = ChatBot(
-#         provider=provider,
-#         database=db,
-#         user_id=user_id,
-#         conversation_id=conversation_id,
-#         system_prompt="You are a friendly tutor"
-#     )
+    if result == True :
+        bot = ChatBot(
+            provider=provider,
+            database=db,
+            user_id=user_id,
+            conversation_id=conversation_id,
+            system_prompt="You are a friendly tutor")
+        
+        x = provider.validate_prompt(prompt=chatinput.input) 
+        
+        """
+        This type of validaiton should not be performed from provider side it should be endpoint level validation 
+        a better practice 
+        """
+        
+        
+        if x == True :
+            try : 
+                response = bot.chat(chatinput.input)
+                
+            except anthropic.AuthenticationError:
+                raise HTTPException(status_code=500, detail="server configuration error") # Notice: you would NOT tell the caller "invalid API key" — that leaks your internal problem to them. Say something generic.
 
-#         response = bot.chat(chatinput.input)
-    
-    
-
-
+            except anthropic.RateLimitError:
+                raise HTTPException(status_code=503, detail="service busy, try again shortly")
+            
+            except anthropic.APIStatusError:
+                raise HTTPException(status_code=503, detail="model service unavailable")
+                    
+            return {
+                "conversation_id": conversation_id,
+                "response": response
+            }
+        
+        else :
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        
+    else : 
+        raise HTTPException(status_code=404 , detail="Convo not found")
+            
 
 # This endpoint is for new users to create a db entry
     
