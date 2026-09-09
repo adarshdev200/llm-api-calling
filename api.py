@@ -118,7 +118,9 @@ def list_conversations(user_id: int):
     conversations = db.get_user_specific_convo(user_id)
     return conversations
 
+#For testing purpose
 
 @app.get("/hello") 
 def start() :
     return "Hello"
+
